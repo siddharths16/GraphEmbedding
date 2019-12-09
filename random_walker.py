@@ -7,18 +7,20 @@ Created on Fri Nov 22 22:31:23 2019
 
 from collections import Counter
 import matplotlib.pyplot as plt
-import GEUtils.GEUtils
-
+import random
+from tqdm import tqdm
+import networkx as nx 
+from GEUtils.GEUtils import alias_draw, alias_setup, read_graph
+from numba import jit, cuda
 class RandomWalker():
     '''
     Randomwalker class generetes the vertex sequence which are visited during the random walk
     from every node in every interation. These vertex sequences are then handed over to skip-gram 
     model to learn the graph embedding.
     '''
-    def __init__(self, graph, reps, length):
+    def __init__(self, graph, nodes, reps, length):
         self.graph = graph
-        self.nodes = list(graph.nodes())
-        self.edges = graph.number_of_edges()
+        self.nodes = nodes
         self.length = length
         self.reps = reps
         self.walks = []
@@ -63,15 +65,18 @@ class RandomWalker():
         self.count_frequency_values()
         return self.degrees, self.walks
             
-            
-            
+
+
+
+
+"""       
 class SecondOrderRandomWalker():
         
     def __init__(self, nx_G, is_directed, p, q):
         self.G = nx_G
         self.nodes = nx.nodes(self.G)
-        print("Edge Weighting.\n")
-        for edge in tqdm():
+        print("Second Order Random Walk. Edge Weighting.\n")
+        for edge in tqdm(self.G.edges()):
             self.G[edge[0]][edge[1]]["weight"] = 1.0
             self.G[edge[1]][edge[0]]["weight"] = 1.0
             
@@ -81,7 +86,7 @@ class SecondOrderRandomWalker():
         
     def node2vec_walk(self, walk_length, start_node):
         """
-        Simulate a random walk starting from start node.
+        #Simulate a random walk starting from start node.
         """
         G = self.G
         alias_nodes = self.alias_nodes
@@ -91,7 +96,7 @@ class SecondOrderRandomWalker():
         
         while len(walk) < walk_length:
             curr_node = walk[-1]
-            curr_nbrs = sorted(G.neighbours(curr_node))
+            curr_nbrs = sorted(G.neighbors(curr_node))
             if len(curr_nbrs) > 0:
                 if len(walk) == 1:
                     walk.append(curr_nbrs[alias_draw(alias_nodes[curr_node][0], alias_nodes[curr_node][1])])
@@ -106,7 +111,7 @@ class SecondOrderRandomWalker():
                    
     def simulate_walks(self, num_walks, walk_length):
         """
-        Repeatedly simulate random walks from each node.
+        #Repeatedly simulate random walks from each node.
         """
         G = self.G
         walks = []
@@ -125,7 +130,7 @@ class SecondOrderRandomWalker():
 
     def count_frequency_values(self, walks):
         """
-        Calculate the co-occurence frequencies
+        #Calculate the co-occurence frequencies
         """
         raw_counts = [node for walk in walks for node in walk]
         counts = Counter(raw_counts)
@@ -134,7 +139,7 @@ class SecondOrderRandomWalker():
         
     def get_alias_edge(self, src, dst):
         """
-        Get the alias edge setup lists for a given edge.
+        #Get the alias edge setup lists for a given edge.
         """
         G = self.G
         p = self.p
@@ -152,11 +157,12 @@ class SecondOrderRandomWalker():
         norm_const = sum(unnormalized_probs)
         normalized_probs = [float(u_prob)/norm_const for u_prob in unnormalized_probs]
         
-        return GEUtils.GEUtils.alias_setup(normalized_probs)
+        return alias_setup(normalized_probs)
+    
     
     def preprocess_transition_probs(self):
         """
-        Preprocessing of transition probabilities for guiding the random walks.
+        #Preprocessing of transition probabilities for guiding the random walks.
         """
         
         G = self.G
@@ -169,7 +175,7 @@ class SecondOrderRandomWalker():
             unnormalized_probs =  [G[node][nbr]["weight"] for nbr in sorted(G.neighbors(node))]
             norm_const = sum(unnormalized_probs)
             normalized_probs =  [float(u_prob)/norm_const for u_prob in unnormalized_probs]
-            alias_nodes[node] = GEUtils.GEUtils.alias_setup(normalized_probs)
+            alias_nodes[node] = alias_setup(normalized_probs)
             
         alias_edges = {}
         traids = {}
@@ -180,15 +186,18 @@ class SecondOrderRandomWalker():
         else:
             for edge in tqdm(G.edges()):
                 alias_edges[edge] = self.get_alias_edge(edge[0], edge[1])
-                alias_edges[(edge[1], edge[0])] = self.get_alias_edge((edge[1], edge[0]))
+                alias_edges[(edge[1], edge[0])] = self.get_alias_edge(edge[1], edge[0])
                 
         self.alias_nodes = alias_nodes
         self.alias_edges = alias_edges
         
         return 
     
-graphFile = "./graph/karate.edgelist"
-karate_graph =  GEUtils.GEUtils.read_graph(graphFile, "edgelist")
-GEUtils.GEUtils.draw_graph(karate_graph)
-rand = RandomWalker(karate_graph,10,10)  
-d, walks = rand.do_walk()
+#graphFile = "./graph/karate.edgelist"
+#graphFile = "./data/artist_edges.csv"
+#karate_graph =  read_graph(graphFile, "edgelist")
+#GEUtils.GEUtils.draw_graph(karate_graph)
+#rand_walk = SecondOrderRandomWalker(karate_graph,False,1,1)  
+#rand_walk.preprocess_transition_probs()
+#walks = rand_walk.simulate_walks(10,10)
+"""
